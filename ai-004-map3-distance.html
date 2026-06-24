@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全螢幕地圖路徑測距工具</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 右下角懸浮控制面板 */
+        .control-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 260px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        /* 距離累計文字欄 */
+        .total-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .total-input-group label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .total-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            text-align: right;
+            outline: none;
+        }
+
+        /* 清除按鈕 */
+        .btn-clear {
+            width: 100%;
+            padding: 12px;
+            background-color: #ff5e5e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-clear:active {
+            transform: scale(0.98);
+            background-color: #e04444;
+        }
+
+        /* 線條距離文字標籤樣式優化 */
+        .distance-label {
+            background: white;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="control-panel">
+        <p class="panel-title">🗺️ 路徑測距工具</p>
+        
+        <div class="total-input-group">
+            <label for="totalDistance">總合計距離：</label>
+            <input type="text" id="totalDistance" class="total-input" value="0 公尺" readonly>
+        </div>
+
+        <button class="btn-clear" onclick="clearMap()">❌ 清除所有圖釘與線條</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. 初始化地圖（預設座標設在台灣中心）
+        const map = L.map('map').setView([23.6, 121.0], 7);
+
+        // 2. 載入地圖圖層
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. 宣告全域變數與圖層群組
+        const markerGroup = L.layerGroup().addTo(map);   // 存放所有圖釘
+        const lineGroup = L.layerGroup().addTo(map);     // 存放所有線條與文字標籤
+        
+        let pointsArray = [];  // 儲存所有點的座標歷史紀錄 [LatLng, LatLng, ...]
+        let totalDistance = 0; // 總距離累計 (公尺)
+
+        // 定義紅色圖釘圖示 (起點專用)
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // 定義藍色圖釘圖示 (續點專用)
+        const blueIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // 4. 監聽地圖點擊事件
+        map.on('click', function(e) {
+            const currentLatLng = e.latlng;
+            let currentMarker;
+
+            // 判斷是否為第一次點擊
+            if (pointsArray.length === 0) {
+                // 第一次點擊：建立紅色圖釘
+                currentMarker = L.marker(currentLatLng, { icon: redIcon }).addTo(markerGroup);
+                currentMarker.bindPopup("<b>起點 (紅色)</b>").openPopup();
+            } else {
+                // 以後點擊：建立藍色圖釘
+                currentMarker = L.marker(currentLatLng, { icon: blueIcon }).addTo(markerGroup);
+                
+                // 取得前一點的座標
+                const lastLatLng = pointsArray[pointsArray.length - 1];
+
+                // 計算兩點間的實際距離 (Leaflet 內建方法，單位為公尺)
+                const distance = lastLatLng.distanceTo(currentLatLng); 
+                const distanceRounded = Math.round(distance); // 四捨五入到整數公尺
+
+                // 累加到總距離
+                totalDistance += distance;
+                document.getElementById('totalDistance').value = Math.round(totalDistance).toLocaleString() + " 公尺";
+
+                // 劃一條線連接前一點與目前點
+                const polyline = L.polyline([lastLatLng, currentLatLng], {
+                    color: '#4a90e2',
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(lineGroup);
+
+                // 計算兩點的中心點，用來放置距離標籤
+                const centerLatLng = L.latLng(
+                    (lastLatLng.lat + currentLatLng.lat) / 2,
+                    (lastLatLng.lng + currentLatLng.lng) / 2
+                );
+
+                // 建立一個純文字的距離標籤，並固定顯示在線條中央
+                L.marker(centerLatLng, {
+                    icon: L.divIcon({
+                        className: 'distance-label',
+                        html: `${distanceRounded} m`,
+                        iconAnchor: [20, 10] // 微調文字框中心點的位置
+                    })
+                }).addTo(lineGroup);
+                
+                currentMarker.bindPopup(`距離前一站: ${distanceRounded} 公尺`).openPopup();
+            }
+
+            // 將當前座標存入陣列
+            pointsArray.push(currentLatLng);
+        });
+
+        // 5. 清除功能
+        function clearMap() {
+            if (pointsArray.length === 0) {
+                alert('地圖上目前沒有任何標記喔！');
+                return;
+            }
+
+            if (confirm('確定要清除所有圖釘、線條並重新計算距離嗎？')) {
+                markerGroup.clearLayers();  // 清空圖釘
+                lineGroup.clearLayers();    // 清空線條與文字
+                pointsArray = [];           // 清空座標紀錄陣列
+                totalDistance = 0;          // 距離累加歸零
+                document.getElementById('totalDistance').value = "0 公尺"; // 更新顯示欄位
+            }
+        }
+    </script>
+</body>
+</html>

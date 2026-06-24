@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全螢幕地圖多路線自訂管理工具</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 右下角懸浮控制面板 */
+        .control-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 280px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        /* 距離合計欄 */
+        .total-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .total-input-group label, .route-select-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .total-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            text-align: right;
+            outline: none;
+        }
+
+        /* 路線選擇選單區 */
+        .route-select-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+
+        .route-dropdown {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            background-color: white;
+            outline: none;
+        }
+
+        /* 按鈕群組排版 */
+        .btn-group-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-save { background-color: #2ecc71; color: white; }
+        .btn-load { background-color: #4a90e2; color: white; }
+        .btn-delete { background-color: #f39c12; color: white; }
+        .btn-clear { background-color: #ff5e5e; color: white; margin-top: 5px; }
+
+        /* 線條距離文字標籤樣式 */
+        .distance-label {
+            background: white;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="control-panel">
+        <p class="panel-title">🗺️ 多路線歷史管理工具</p>
+        
+        <div class="total-input-group">
+            <label>總合計距離：</label>
+            <input type="text" id="totalDistance" class="total-input" value="0 公尺" readonly>
+        </div>
+
+        <button class="btn-save" onclick="saveRoute()">💾 儲存目前路線與命名</button>
+
+        <div class="route-select-group">
+            <label for="routeSelect">讀取歷史路線：</label>
+            <select id="routeSelect" class="route-dropdown">
+                <option value="">-- 尚未儲存任何路線 --</option>
+            </select>
+            <div class="btn-group-row">
+                <button class="btn-load" onclick="loadRoute()">📂 載入路線</button>
+                <button class="btn-delete" onclick="deleteRoute()">🗑️ 刪除該條</button>
+            </div>
+        </div>
+
+        <button class="btn-clear" onclick="clearMap(true)">❌ 清除畫布重新點選</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([23.6, 121.0], 7);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const markerGroup = L.layerGroup().addTo(map);
+        const lineGroup = L.layerGroup().addTo(map);
+        
+        let pointsArray = []; 
+        let totalDistance = 0;
+
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        const blueIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // 初始化網頁時更新下拉選單
+        document.addEventListener('DOMContentLoaded', updateDropdown);
+
+        map.on('click', function(e) {
+            addPointToMap(e.latlng);
+        });
+
+        function addPointToMap(latlng) {
+            let currentMarker;
+
+            if (pointsArray.length === 0) {
+                currentMarker = L.marker(latlng, { icon: redIcon }).addTo(markerGroup);
+                currentMarker.bindPopup("<b>起點 (紅色)</b>").openPopup();
+            } else {
+                currentMarker = L.marker(latlng, { icon: blueIcon }).addTo(markerGroup);
+                
+                const lastLatLng = pointsArray[pointsArray.length - 1];
+                const distance = lastLatLng.distanceTo(latlng); 
+                const distanceRounded = Math.round(distance);
+
+                totalDistance += distance;
+                document.getElementById('totalDistance').value = Math.round(totalDistance).toLocaleString() + " 公尺";
+
+                L.polyline([lastLatLng, latlng], {
+                    color: '#4a90e2',
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(lineGroup);
+
+                const centerLatLng = L.latLng((lastLatLng.lat + latlng.lat) / 2, (lastLatLng.lng + latlng.lng) / 2);
+
+                L.marker(centerLatLng, {
+                    icon: L.divIcon({
+                        className: 'distance-label',
+                        html: `${distanceRounded} m`,
+                        iconAnchor: [20, 10]
+                    })
+                }).addTo(lineGroup);
+                
+                currentMarker.bindPopup(`距離前一站: ${distanceRounded} 公尺`).openPopup();
+            }
+
+            pointsArray.push(latlng);
+        }
+
+        // 核心邏輯：從 LocalStorage 獲取包含所有路線的物件資料庫
+        function getAllSavedRoutes() {
+            const routes = localStorage.getItem('multi_map_routes');
+            return routes ? JSON.parse(routes) : {};
+        }
+
+        // 更新下拉式選單 UI
+        function updateDropdown() {
+            const select = document.getElementById('routeSelect');
+            const allRoutes = getAllSavedRoutes();
+            
+            select.innerHTML = ''; // 清空舊內容
+
+            const keys = Object.keys(allRoutes);
+            if (keys.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = '-- 尚未儲存任何路線 --';
+                select.appendChild(opt);
+                return;
+            }
+
+            // 預設提示選項
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = `-- 請選擇歷史路線 (${keys.length}條) --`;
+            select.appendChild(defaultOpt);
+
+            // 填充路線名稱到選單中
+            keys.forEach(routeName => {
+                const opt = document.createElement('option');
+                opt.value = routeName;
+                opt.textContent = routeName;
+                select.appendChild(opt);
+            });
+        }
+
+        // 1. 儲存與命名路線功能
+        function saveRoute() {
+            if (pointsArray.length === 0) {
+                alert('地圖上沒有任何節點，無法儲存路線喔！');
+                return;
+            }
+
+            // 彈出視窗詢問使用者路線名稱
+            let routeName = prompt('請輸入此路線的名稱（例如：早晨散步、操場圈）：');
+            if (routeName === null) return; // 使用者按取消
+            routeName = routeName.trim();
+            
+            if (routeName === '') {
+                alert('名稱不能為空喔！');
+                return;
+            }
+
+            const allRoutes = getAllSavedRoutes();
+            
+            // 檢查是否重複命名
+            if (allRoutes[routeName]) {
+                if (!confirm(`已存在名為「${routeName}」的路線，是否要覆蓋它？`)) {
+                    return;
+                }
+            }
+
+            // 打包目前的經緯度數組
+            const routeData = pointsArray.map(p => ({ lat: p.lat, lng: p.lng }));
+            
+            // 存入全域路線資料庫
+            allRoutes[routeName] = routeData;
+            localStorage.setItem('multi_map_routes', JSON.stringify(allRoutes));
+            
+            alert(`💾 路線「${routeName}」已成功儲存！`);
+            updateDropdown(); // 更新選單
+        }
+
+        // 2. 讀取路線功能
+        function loadRoute() {
+            const select = document.getElementById('routeSelect');
+            const selectedName = select.value;
+
+            if (!selectedName) {
+                alert('請先在下拉選單中選擇一條歷史路線喔！');
+                return;
+            }
+
+            if (pointsArray.length > 0) {
+                if (!confirm('讀取歷史路線會清除目前地圖上的暫存資料，確定嗎？')) {
+                    return;
+                }
+            }
+
+            clearMap(false); // 清除目前畫面
+
+            const allRoutes = getAllSavedRoutes();
+            const routeData = allRoutes[selectedName];
+
+            if (routeData) {
+                // 依序重建路線
+                routeData.forEach(coord => {
+                    const latlng = L.latLng(coord.lat, coord.lng);
+                    addPointToMap(latlng);
+                });
+
+                // 自動聚焦
+                if (pointsArray.length > 0) {
+                    const bounds = L.latLngBounds(pointsArray);
+                    map.fitBounds(bounds, { padding: [50, 50] }); 
+                }
+            }
+        }
+
+        // 3. 刪除單一歷史路線功能
+        function deleteRoute() {
+            const select = document.getElementById('routeSelect');
+            const selectedName = select.value;
+
+            if (!selectedName) {
+                alert('請先在下拉選單中選擇您想刪除的路線！');
+                return;
+            }
+
+            if (confirm(`🗑️ 確定要永久刪除「${selectedName}」這條路線嗎？此動作無法復原。`)) {
+                const allRoutes = getAllSavedRoutes();
+                delete allRoutes[selectedName]; // 自物件中移除該屬性
+                
+                localStorage.setItem('multi_map_routes', JSON.stringify(allRoutes));
+                alert(`已刪除「${selectedName}」。`);
+                
+                updateDropdown(); // 重新整理下拉選單
+            }
+        }
+
+        // 4. 清除功能
+        function clearMap(isManual) {
+            if (isManual && pointsArray.length === 0) {
+                alert('地圖上目前沒有任何標記喔！');
+                return;
+            }
+
+            if (!isManual || confirm('確定要清空當前畫面上的圖釘與線條嗎？（不會影響已儲存的歷史紀錄）')) {
+                markerGroup.clearLayers();  
+                lineGroup.clearLayers();    
+                pointsArray = [];           
+                totalDistance = 0;          
+                document.getElementById('totalDistance').value = "0 公尺"; 
+            }
+        }
+    </script>
+</body>
+</html>
