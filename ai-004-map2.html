@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全螢幕手機定位互動地圖</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 右下角懸浮按鈕容器 */
+        .map-btn-container {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-clear {
+            background-color: #ff5e5e;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background-color: #e04444;
+        }
+
+        .btn-locate {
+            background-color: #4a90e2;
+            color: white;
+        }
+
+        .btn-locate:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="map-btn-container">
+        <button class="btn-locate" onclick="locateUser()">🎯 重新定位我的位置</button>
+        <button class="btn-clear" onclick="clearCustomMarkers()">❌ 清除自訂圖釘</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. 初始化地圖（預設先設在台灣中心點）
+        const map = L.map('map').setView([23.6, 121.0], 7);
+
+        // 2. 載入地圖圖層
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. 建立不同的圖層群組（分開管理手機位置與自訂圖釘）
+        const myLocationGroup = L.layerGroup().addTo(map);
+        const customMarkerGroup = L.layerGroup().addTo(map);
+
+        // 建立自訂圖釘的紅色圖示（區隔手機位置）
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // 4. 手機定位功能
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert('您的瀏覽器不支援 GPS 定位功能喔！');
+                return;
+            }
+
+            // 調整定位參數，enableHighAccuracy 代表啟用高精準度（會比較耗電但更準）
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    // 清除舊的手機定位標記
+                    myLocationGroup.clearLayers();
+
+                    // 在地圖上標示目前手機位置（使用預設藍色圖釘）
+                    const myMarker = L.marker([lat, lng])
+                        .bindPopup('<b>📍 您目前的手機位置</b>')
+                        .addTo(myLocationGroup);
+
+                    // 將地圖視角移動到手機中心，並放大層級到 16
+                    map.setView([lat, lng], 16);
+                    myMarker.openPopup();
+                },
+                function(error) {
+                    // 錯誤處理
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            alert("定位失敗：使用者拒絕了定位請求。請檢查手機瀏覽器的權限設定。");
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            alert("定位失敗：無法取得位置資訊（可能 GPS 訊號太弱）。");
+                            break;
+                        case error.TIMEOUT:
+                            alert("定位失敗：請求逾時。");
+                            break;
+                        default:
+                            alert("定位失敗：發生未知錯誤。");
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // 5. 監聽地圖點擊事件（新增自訂的紅色圖釘）
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(5);
+            const lng = e.latlng.lng.toFixed(5);
+            
+            const newMarker = L.marker(e.latlng, { icon: redIcon })
+                .bindPopup(`<b>自訂地點</b><br>緯度: ${lat}<br>經度: ${lng}`);
+            
+            customMarkerGroup.addLayer(newMarker);
+            newMarker.openPopup();
+        });
+
+        // 6. 清除功能（只清除手動點擊的紅色圖釘）
+        function clearCustomMarkers() {
+            if (customMarkerGroup.getLayers().length === 0) {
+                alert('地圖上目前沒有任何自訂圖釘喔！');
+                return;
+            }
+            if (confirm('確定要清除所有手動標示的紅色圖釘嗎？（您的手機定位會保留）')) {
+                customMarkerGroup.clearLayers();
+            }
+        }
+
+        // 網頁開啟時，自動執行一次手機定位
+        window.onload = locateUser;
+    </script>
+</body>
+</html>

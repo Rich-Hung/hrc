@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行動極簡待辦清單</title>
+    <style>
+        /* 行動裝置優先的極簡風格設計 */
+        :root {
+            --primary-color: #4a90e2;
+            --danger-color: #ff5e5e;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px; /* 限制最大寬度，在平板或電腦上也不會跑版 */
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* 輸入區域 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px; /* 防止 iOS 點擊輸入框時自動放大 */
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* 按鈕基礎樣式（適合行動裝置手指點擊的大尺寸） */
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent; /* 移除手機點擊時的藍色陰影 */
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-add {
+            background-color: var(--primary-color);
+            color: white;
+            white-space: nowrap;
+        }
+
+        .btn-clear {
+            background-color: var(--danger-color);
+            color: white;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* 任務清單顯示區域 */
+        .todo-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto; /* 內容過多時可滾動 */
+            margin-top: 10px;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 14px;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #aaa;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            word-break: break-all; /* 防止長文字撐破版面 */
+        }
+
+        /* 複選框樣式優化 */
+        .todo-checkbox {
+            width: 22px;
+            height: 22px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>My To-Do List</h2>
+    
+    <div class="input-group">
+        <input type="text" id="todoInput" placeholder="請輸入新任務..." autocomplete="off">
+        <button class="btn-add" onclick="addTodo()">新增任務</button>
+    </div>
+
+    <ul id="todoList" class="todo-list"></ul>
+
+    <button class="btn-clear" onclick="clearTodos()">清除所有任務</button>
+</div>
+
+<script>
+    const todoInput = document.getElementById('todoInput');
+    const todoList = document.getElementById('todoList');
+
+    // 網頁載入時自動讀取紀錄
+    document.addEventListener('DOMContentLoaded', loadTodos);
+
+    // 支援按下 Enter 鍵新增
+    todoInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addTodo();
+    });
+
+    // 1. 新增任務
+    function addTodo() {
+        const taskText = todoInput.value.trim();
+        if (taskText === '') {
+            alert('請先輸入任務內容喔！');
+            return;
+        }
+
+        createTodoElement(taskText, false);
+        todoInput.value = ''; // 清空輸入框
+        saveTodos();
+    }
+
+    // 建立清單 DOM 元素
+    function createTodoElement(text, isCompleted) {
+        const li = document.createElement('li');
+        li.className = `todo-item ${isCompleted ? 'completed' : ''}`;
+
+        // 建立勾選方塊
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'todo-checkbox';
+        checkbox.checked = isCompleted;
+        checkbox.addEventListener('change', function() {
+            li.classList.toggle('completed', checkbox.checked);
+            saveTodos();
+        });
+
+        // 建立文字區塊
+        const span = document.createElement('span');
+        span.className = 'todo-text';
+        span.textContent = text;
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        todoList.appendChild(li);
+    }
+
+    // 2. 清除任務
+    function clearTodos() {
+        if (todoList.children.length === 0) return;
+        
+        if (confirm('確定要清除所有的任務嗎？')) {
+            todoList.innerHTML = '';
+            localStorage.removeItem('todos');
+        }
+    }
+
+    // 儲存到手機/瀏覽器本地快取
+    function saveTodos() {
+        const todos = [];
+        document.querySelectorAll('.todo-item').forEach(item => {
+            todos.push({
+                text: item.querySelector('.todo-text').textContent,
+                completed: item.querySelector('.todo-checkbox').checked
+            });
+        });
+        localStorage.setItem('todos', JSON.stringify(todos));
+    }
+
+    // 讀取本地快取
+    function loadTodos() {
+        const savedTodos = JSON.parse(localStorage.getItem('todos')) || [];
+        savedTodos.forEach(todo => {
+            createTodoElement(todo.text, todo.completed);
+        });
+    }
+</script>
+
+</body>
+</html>

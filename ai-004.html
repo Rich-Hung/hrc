@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全螢幕互動地圖</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* 讓網頁與地圖達到真正的 100% 全螢幕 */
+        html, body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 懸浮功能按鈕樣式 */
+        .map-btn-container {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 1000; /* 確保按鈕在畫布最上層 */
+        }
+
+        .btn-clear {
+            padding: 14px 24px;
+            background-color: #ff5e5e;
+            color: white;
+            border: none;
+            border-radius: 30px; /* 圓角膠囊造型，適合行動裝置點擊 */
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-clear:active {
+            transform: scale(0.95);
+            background-color: #e04444;
+        }
+        
+        /* 輕量優化 Leaflet 內建的縮放按鈕，避開手機瀏海或操作手勢 */
+        .leaflet-top.leaflet-left {
+            top: 20px;
+            left: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="map-btn-container">
+        <button class="btn-clear" onclick="clearMarkers()">❌ 清除所有圖釘</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. 初始化地圖（預設座標設在台灣，縮放層級設為 7）
+        const map = L.map('map', {
+            zoomControl: true 
+        }).setView([23.6, 121.0], 7);
+
+        // 2. 載入開源的 OpenStreetMap 地圖圖層
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. 建立一個用來管理所有圖釘（Markers）的群組
+        const markerGroup = L.layerGroup().addTo(map);
+
+        // 4. 監聽地圖點擊事件：點擊時新增圖釘
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(5);
+            const lng = e.latlng.lng.toFixed(5);
+            
+            // 建立新圖釘並加入群組，同時綁定一個簡單的彈出視窗（Popup）
+            const newMarker = L.marker(e.latlng)
+                .bindPopup(`<b>新圖釘</b><br>緯度: ${lat}<br>經度: ${lng}`);
+            
+            markerGroup.addLayer(newMarker);
+            
+            // 點擊後自動跳出經緯度提示資訊
+            newMarker.openPopup();
+        });
+
+        // 5. 清除功能：一鍵清空群組內的所有圖釘
+        function clearMarkers() {
+            // 先確認是否有圖釘存在
+            if (markerGroup.getLayers().length === 0) {
+                alert('地圖上目前沒有任何圖釘喔！');
+                return;
+            }
+
+            if (confirm('確定要清除地圖上所有的圖釘嗎？')) {
+                markerGroup.clearLayers();
+            }
+        }
+    </script>
+</body>
+</html>
