@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四個個位數加法練習 (含語音鍵盤版)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+        }
+        h1 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #718096;
+        }
+        .score-board span {
+            font-weight: bold;
+        }
+        .score { color: #38a169; }
+        .total { color: #3182ce; }
+        
+        /* 直式算式區塊 */
+        .math-vertical {
+            display: inline-block;
+            font-size: 42px;
+            font-weight: bold;
+            color: #2d3748;
+            font-family: monospace;
+            text-align: right;
+            line-height: 1.1;
+            margin-bottom: 15px;
+            padding-right: 10px;
+        }
+        .math-row {
+            letter-spacing: 5px;
+        }
+        .last-row {
+            border-bottom: 4px solid #2d3748;
+            padding-bottom: 5px;
+            position: relative;
+            letter-spacing: 5px;
+        }
+        .sign {
+            position: absolute;
+            left: -35px;
+            bottom: 5px;
+        }
+
+        /* 答案顯示區 */
+        .answer-display {
+            font-size: 28px;
+            font-weight: bold;
+            width: 160px;
+            height: 45px;
+            line-height: 45px;
+            text-align: center;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            margin: 0 auto 15px auto;
+            background-color: #f7fafc;
+            color: #2d3748;
+            min-height: 45px;
+        }
+        .answer-display.focus {
+            border-color: #3182ce;
+            background-color: #fff;
+        }
+
+        /* 虛擬鍵盤樣式 */
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .key {
+            background-color: #edf2f7;
+            border: none;
+            border-radius: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #4a5568;
+            padding: 15px 0;
+            cursor: pointer;
+            transition: background-color 0.1s, transform 0.05s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .key:active {
+            background-color: #e2e8f0;
+            transform: scale(0.95);
+        }
+        .key.action {
+            background-color: #cbd5e0;
+            font-size: 18px;
+        }
+        .key.submit {
+            grid-column: span 3;
+            background-color: #3182ce;
+            color: white;
+            font-size: 20px;
+            margin-top: 5px;
+        }
+        .key.submit:hover {
+            background-color: #2b6cb0;
+        }
+        .key.submit.next-stage {
+            background-color: #38a169;
+        }
+        .key.submit.next-stage:hover {
+            background-color: #2f855a;
+        }
+
+        .result {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 28px;
+        }
+        .correct { color: #38a169; }
+        .wrong { color: #e53e3e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>加法大挑戰 (直式語音版)</h1>
+    
+    <div class="score-board">
+        <div>答對: <span id="score" class="score">0</span></div>
+        <div>總題數: <span id="total" class="total">0</span></div>
+    </div>
+
+    <div>
+        <div class="math-vertical">
+            <div class="math-row" id="n1">0</div>
+            <div class="math-row" id="n2">0</div>
+            <div class="math-row" id="n3">0</div>
+            <div class="last-row">
+                <span class="sign">+</span>
+                <span id="n4">0</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="answer-display focus" id="answer-box"></div>
+    
+    <div class="result" id="result"></div>
+
+    <div class="keyboard">
+        <button class="key" onclick="pressNum(1)">1</button>
+        <button class="key" onclick="pressNum(2)">2</button>
+        <button class="key" onclick="pressNum(3)">3</button>
+        <button class="key" onclick="pressNum(4)">4</button>
+        <button class="key" onclick="pressNum(5)">5</button>
+        <button class="key" onclick="pressNum(6)">6</button>
+        <button class="key" onclick="pressNum(7)">7</button>
+        <button class="key" onclick="pressNum(8)">8</button>
+        <button class="key" onclick="pressNum(9)">9</button>
+        <button class="key action" onclick="pressClear()">清除</button>
+        <button class="key" onclick="pressNum(0)">0</button>
+        <button class="key action" onclick="pressDelete()">⌫</button>
+        
+        <button class="key submit" id="btn-submit" onclick="handleSubmit()">送出答案</button>
+    </div>
+</div>
+
+<script>
+    let num1, num2, num3, num4, correctAnswer;
+    let scoreCount = 0;
+    let totalCount = 0;
+    let isAnswered = false;
+    let currentInput = "";
+
+    const answerBox = document.getElementById('answer-box');
+    const btnSubmit = document.getElementById('btn-submit');
+    const resultEl = document.getElementById('result');
+    const scoreEl = document.getElementById('score');
+    const totalEl = document.getElementById('total');
+
+    function getRandomDigit() {
+        return Math.floor(Math.random() * 9) + 1;
+    }
+
+    function generateQuestion() {
+        num1 = getRandomDigit();
+        num2 = getRandomDigit();
+        num3 = getRandomDigit();
+        num4 = getRandomDigit();
+        correctAnswer = num1 + num2 + num3 + num4;
+
+        document.getElementById('n1').textContent = num1;
+        document.getElementById('n2').textContent = num2;
+        document.getElementById('n3').textContent = num3;
+        document.getElementById('n4').textContent = num4;
+
+        currentInput = "";
+        answerBox.textContent = "";
+        answerBox.classList.add('focus');
+        resultEl.textContent = '';
+        resultEl.className = 'result';
+        btnSubmit.textContent = '送出答案';
+        btnSubmit.classList.remove('next-stage');
+        isAnswered = false;
+    }
+
+    // 語音播放功能
+    function speak(text) {
+        // 先停止當前正在播放的語音，避免重疊
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-TW'; // 設定為中文語音
+        utterance.rate = 1.1;     // 語速稍微加快一點點點，聽起來比較乾脆
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function pressNum(num) {
+        if (isAnswered) return;
+        if (currentInput.length < 3) {
+            currentInput += num;
+            answerBox.textContent = currentInput;
+        }
+    }
+
+    function pressDelete() {
+        if (isAnswered) return;
+        currentInput = currentInput.slice(0, -1);
+        answerBox.textContent = currentInput;
+    }
+
+    function pressClear() {
+        if (isAnswered) return;
+        currentInput = "";
+        answerBox.textContent = "";
+    }
+
+    function handleSubmit() {
+        if (isAnswered) {
+            generateQuestion();
+            return;
+        }
+
+        if (currentInput === "") {
+            resultEl.textContent = '請先輸入答案喔！';
+            resultEl.className = 'result wrong';
+            speak('請先輸入答案');
+            return;
+        }
+
+        const userAnswer = parseInt(currentInput);
+        totalCount++;
+        totalEl.textContent = totalCount;
+        isAnswered = true;
+        answerBox.classList.remove('focus');
+
+        if (userAnswer === correctAnswer) {
+            scoreCount++;
+            scoreEl.textContent = scoreCount;
+            resultEl.textContent = ' 答對了！太棒了！';
+            resultEl.className = 'result correct';
+            speak('答對了！'); // 播放答對語音
+        } else {
+            resultEl.textContent = ` 答錯了... 正確答案是 ${correctAnswer}`;
+            resultEl.className = 'result wrong';
+            speak(`答錯了。正確答案是 ${correctAnswer}`); // 播放答錯語音並提示答案
+        }
+
+        btnSubmit.textContent = '下一題';
+        btnSubmit.classList.add('next-stage');
+    }
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key >= '0' && e.key <= '9') {
+            pressNum(e.key);
+        } else if (e.key === 'Backspace') {
+            pressDelete();
+        } else if (e.key === 'Escape') {
+            pressClear();
+        } else if (e.key === 'Enter') {
+            handleSubmit();
+        }
+    });
+
+    generateQuestion();
+</script>
+
+</body>
+</html>
