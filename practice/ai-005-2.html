@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四個個位數加法練習 (直式)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f9fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 360px;
+            width: 90%;
+        }
+        h1 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #718096;
+        }
+        .score-board span {
+            font-weight: bold;
+        }
+        .score { color: #38a169; }
+        .total { color: #3182ce; }
+        
+        /* 直式算式區塊 */
+        .math-vertical {
+            display: inline-block;
+            font-size: 38px;
+            font-weight: bold;
+            color: #2d3748;
+            font-family: monospace; /* 固定字寬讓數字對齊更完美 */
+            text-align: right;
+            line-height: 1.2;
+            margin-bottom: 25px;
+            padding-right: 10px;
+        }
+        .math-row {
+            letter-spacing: 5px;
+        }
+        /* 最後一個數字加上加號與下底線 */
+        .last-row {
+            border-bottom: 4px solid #2d3748;
+            padding-bottom: 5px;
+            position: relative;
+            letter-spacing: 5px;
+        }
+        .sign {
+            position: absolute;
+            left: -35px;
+            bottom: 5px;
+        }
+
+        input[type="number"] {
+            font-size: 26px;
+            width: 140px;
+            text-align: center;
+            padding: 8px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+            display: block;
+            margin: 0 auto;
+        }
+        input[type="number"]:focus {
+            border-color: #3182ce;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        button {
+            font-size: 18px;
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2b6cb0;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 28px;
+        }
+        .correct { color: #38a169; }
+        .wrong { color: #e53e3e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>加法大挑戰 (直式)</h1>
+    
+    <div class="score-board">
+        <div>答對: <span id="score" class="score">0</span></div>
+        <div>總題數: <span id="total" class="total">0</span></div>
+    </div>
+
+    <div>
+        <div class="math-vertical">
+            <div class="math-row" id="n1">0</div>
+            <div class="math-row" id="n2">0</div>
+            <div class="math-row" id="n3">0</div>
+            <div class="last-row">
+                <span class="sign">+</span>
+                <span id="n4">0</span>
+            </div>
+        </div>
+    </div>
+    
+    <input type="number" id="answer" placeholder="請輸入答案" autofocus autocomplete="off">
+    
+    <button id="btn" onclick="checkAnswer()">送出答案</button>
+    
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+    let num1, num2, num3, num4, correctAnswer;
+    let scoreCount = 0;
+    let totalCount = 0;
+    let isAnswered = false;
+
+    const answerInput = document.getElementById('answer');
+    const btnEl = document.getElementById('btn');
+    const resultEl = document.getElementById('result');
+    const scoreEl = document.getElementById('score');
+    const totalEl = document.getElementById('total');
+
+    function getRandomDigit() {
+        return Math.floor(Math.random() * 9) + 1;
+    }
+
+    function generateQuestion() {
+        num1 = getRandomDigit();
+        num2 = getRandomDigit();
+        num3 = getRandomDigit();
+        num4 = getRandomDigit();
+        correctAnswer = num1 + num2 + num3 + num4;
+
+        // 將數字填入對應的直式位置
+        document.getElementById('n1').textContent = num1;
+        document.getElementById('n2').textContent = num2;
+        document.getElementById('n3').textContent = num3;
+        document.getElementById('n4').textContent = num4;
+
+        answerInput.value = '';
+        resultEl.textContent = '';
+        resultEl.className = 'result';
+        btnEl.textContent = '送出答案';
+        isAnswered = false;
+        answerInput.disabled = false;
+        answerInput.focus();
+    }
+
+    function checkAnswer() {
+        if (isAnswered) {
+            generateQuestion();
+            return;
+        }
+
+        const userAnswer = parseInt(answerInput.value);
+
+        if (isNaN(userAnswer)) {
+            resultEl.textContent = '請輸入答案喔！';
+            resultEl.className = 'result wrong';
+            return;
+        }
+
+        totalCount++;
+        totalEl.textContent = totalCount;
+        answerInput.disabled = true;
+
+        if (userAnswer === correctAnswer) {
+            scoreCount++;
+            scoreEl.textContent = scoreCount;
+            resultEl.textContent = ' 答對了！太棒了！';
+            resultEl.className = 'result correct';
+        } else {
+            resultEl.textContent = ` 答錯了... 正確答案是 ${correctAnswer}`;
+            resultEl.className = 'result wrong';
+        }
+
+        btnEl.textContent = '下一題';
+        isAnswered = true;
+    }
+
+    answerInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkAnswer();
+        }
+    });
+
+    // 初始化第一題
+    generateQuestion();
+</script>
+
+</body>
+</html>
