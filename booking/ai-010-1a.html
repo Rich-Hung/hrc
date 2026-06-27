@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁式會計系統 (極簡原型)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 border-b pb-4 border-gray-200">
+            <h1 class="text-3xl font-bold text-blue-600">自動化網頁會計系統</h1>
+            <p class="text-gray-500 text-sm mt-1">符合會計原則：分錄輸入 → 自動過帳 → 即時報表</p>
+        </header>
+
+        <section class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">1. 日記簿分錄輸入 (Journal Entry)</h2>
+            <form id="entryForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">日期</label>
+                        <input type="date" id="date" required class="w-full border rounded p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">摘要</label>
+                        <input type="text" id="description" placeholder="例如：現銷商品" required class="w-full border rounded p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">會計科目</label>
+                        <select id="account" required class="w-full border rounded p-2 text-sm">
+                            <optgroup label="資產 (Asset)">
+                                <option value="現金">現金</option>
+                                <option value="應收帳款">應收帳款</option>
+                            </optgroup>
+                            <optgroup label="負債 (Liability)">
+                                <option value="應付帳款">應付帳款</option>
+                            </optgroup>
+                            <optgroup label="權益 (Equity)">
+                                <option value="股本">股本</option>
+                            </optgroup>
+                            <optgroup label="收益 (Revenue)">
+                                <option value="銷貨收入">銷貨收入</option>
+                            </optgroup>
+                            <optgroup label="費損 (Expense)">
+                                <option value="薪資支出">薪資支出</option>
+                                <option value="租金支出">租金支出</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">借貸方向</label>
+                        <select id="type" required class="w-full border rounded p-2 text-sm">
+                            <option value="debit">借方 (Debit)</option>
+                            <option value="credit">貸方 (Credit)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">金額</label>
+                        <input type="number" id="amount" min="1" placeholder="0" required class="w-full border rounded p-2 text-sm">
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition">
+                    記帳 (過帳)
+                </button>
+            </form>
+        </section>
+
+        <section class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">2. 日記簿明細</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 border-b border-gray-200">
+                            <th class="p-3">日期</th>
+                            <th class="p-3">摘要</th>
+                            <th class="p-3">會計科目</th>
+                            <th class="p-3 text-right">借方金額</th>
+                            <th class="p-3 text-right">貸方金額</th>
+                        </tr>
+                    </thead>
+                    <tbody id="journalBody">
+                        </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="bg-white p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-2 text-gray-700">損益表 (Income Statement)</h2>
+                <p class="text-xs text-gray-400 mb-4">表達特定期間的經營成果</p>
+                <table class="w-full text-sm">
+                    <tbody>
+                        <tr class="border-b"><td class="py-2 font-medium">營業收入</td><td class="py-2 text-right" id="is-revenue">0</td></tr>
+                        <tr class="border-b"><td class="py-2 font-medium">營業費用</td><td class="py-2 text-right text-red-500" id="is-expense">0</td></tr>
+                        <tr class="bg-blue-50 font-bold"><td class="p-2">本期淨利</td><td class="p-2 text-right" id="is-netIncome">0</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="bg-white p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-2 text-gray-700">資產負債表 (Balance Sheet)</h2>
+                <p class="text-xs text-gray-400 mb-4">表達特定時點的財務狀況 ($資產 = 負債 + 權益$)</p>
+                <table class="w-full text-sm mb-4">
+                    <thead><tr class="bg-gray-50"><th class="text-left p-1" colspan="2">資產 (Assets)</th></tr></thead>
+                    <tbody>
+                        <tr class="border-b"><td class="py-1 px-2 text-gray-600">現金</td><td class="py-1 text-right" id="bs-cash">0</td></tr>
+                        <tr class="border-b"><td class="py-1 px-2 text-gray-600">應收帳款</td><td class="py-1 text-right" id="bs-ar">0</td></tr>
+                        <tr class="font-semibold bg-gray-100"><td class="p-1 px-2">資產總計</td><td class="p-1 text-right" id="bs-totalAssets">0</td></tr>
+                    </tbody>
+                </table>
+                <table class="w-full text-sm">
+                    <thead><tr class="bg-gray-50"><th class="text-left p-1" colspan="2">負債及權益 (Liabilities & Equity)</th></tr></thead>
+                    <tbody>
+                        <tr class="border-b"><td class="py-1 px-2 text-gray-600">應付帳款</td><td class="py-1 text-right" id="bs-ap">0</td></tr>
+                        <tr class="border-b"><td class="py-1 px-2 text-gray-600">股本</td><td class="py-1 text-right" id="bs-equity">0</td></tr>
+                        <tr class="border-b text-blue-600"><td class="py-1 px-2 text-gray-600">保留盈餘 (本期淨利)</td><td class="py-1 text-right" id="bs-retainedEarnings">0</td></tr>
+                        <tr class="font-semibold bg-gray-100"><td class="p-1 px-2">負債及權益總計</td><td class="p-1 text-right" id="bs-totalLiabEquity">0</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // 1. 初始化資料庫 (日記簿陣列)
+        const journalEntries = [];
+
+        // 會計科目初始餘額 (總分類帳)
+        const ledger = {
+            "現金": 0, "應收帳款": 0,
+            "應付帳款": 0, "股本": 0,
+            "銷貨收入": 0, "薪資支出": 0, "租金支出": 0
+        };
+
+        // 科目類別字典，用來判斷增加時該加還是減
+        // 資產、費損：借方增加 (+)，貸方減少 (-)
+        // 負債、權益、收入：貸方增加 (+)，借方減少 (-)
+        const accountTypes = {
+            "現金": "資產", "應收帳款": "資產",
+            "應付帳款": "負債", "股本": "權益",
+            "銷貨收入": "收入", "薪資支出": "費損", "租金支出": "費損"
+        };
+
+        // 2. 監聽表單提交 (輸入分錄)
+        document.getElementById('entryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const date = document.getElementById('date').value;
+            const description = document.getElementById('description').value;
+            const account = document.getElementById('account').value;
+            const type = document.getElementById('type').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            // 儲存分錄
+            const entry = { date, description, account, type, amount };
+            journalEntries.push(entry);
+
+            // 3. 自動過帳 (更新總分類帳餘額)
+            updateLedger(account, type, amount);
+
+            // 4. 重新渲染介面與報表
+            renderJournal();
+            renderReports();
+
+            // 表單重設 (保留日期方便連續輸入)
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+        });
+
+        // 核心過帳邏輯
+        function updateLedger(account, type, amount) {
+            const category = accountTypes[account];
+            
+            if (category === "資產" || category === "費損") {
+                // 借方加，貸方減
+                ledger[account] += (type === "debit") ? amount : -amount;
+            } else {
+                // 負債、權益、收入：貸方加，借方減
+                ledger[account] += (type === "credit") ? amount : -amount;
+            }
+        }
+
+        // 渲染日記簿表格
+        function renderJournal() {
+            const tbody = document.getElementById('journalBody');
+            tbody.innerHTML = '';
+
+            journalEntries.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-100 hover:bg-gray-50";
+                
+                const debitStr = entry.type === 'debit' ? entry.amount.toLocaleString() : '';
+                const creditStr = entry.type === 'credit' ? entry.amount.toLocaleString() : '';
+
+                tr.innerHTML = `
+                    <td class="p-3">${entry.date}</td>
+                    <td class="p-3">${entry.description}</td>
+                    <td class="p-3 ${entry.type === 'credit' ? 'pl-8 text-gray-600' : 'font-medium'}">${entry.account}</td>
+                    <td class="p-3 text-right text-emerald-600">${debitStr}</td>
+                    <td class="p-3 text-right text-blue-600">${creditStr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 渲染損益表與資產負債表
+        function renderReports() {
+            // === A. 計算損益表 ===
+            const revenue = ledger["銷貨收入"];
+            const expense = ledger["薪資支出"] + ledger["租金支出"];
+            const netIncome = revenue - expense;
+
+            document.getElementById('is-revenue').innerText = revenue.toLocaleString();
+            document.getElementById('is-expense').innerText = expense.toLocaleString();
+            document.getElementById('is-netIncome').innerText = netIncome.toLocaleString();
+
+            // 調整本期淨利顏色
+            document.getElementById('is-netIncome').className = `p-2 text-right ${netIncome >= 0 ? 'text-emerald-600' : 'text-red-500'}`;
+
+            // === B. 計算資產負債表 ===
+            const cash = ledger["現金"];
+            const ar = ledger["應收帳款"];
+            const totalAssets = cash + ar;
+
+            const ap = ledger["應付帳款"];
+            const equity = ledger["股本"];
+            const retainedEarnings = netIncome; // 會計原則：本期淨利結轉至保留盈餘
+            const totalLiabEquity = ap + equity + retainedEarnings;
+
+            // 更新資產側
+            document.getElementById('bs-cash').innerText = cash.toLocaleString();
+            document.getElementById('bs-ar').innerText = ar.toLocaleString();
+            document.getElementById('bs-totalAssets').innerText = totalAssets.toLocaleString();
+
+            // 更新負債權益側
+            document.getElementById('bs-ap').innerText = ap.toLocaleString();
+            document.getElementById('bs-equity').innerText = equity.toLocaleString();
+            document.getElementById('bs-retainedEarnings').innerText = retainedEarnings.toLocaleString();
+            document.getElementById('bs-totalLiabEquity').innerText = totalLiabEquity.toLocaleString();
+        }
+
+        // 初始化當天日期
+        document.getElementById('date').valueAsDate = new Date();
+    </script>
+</body>
+</html>
