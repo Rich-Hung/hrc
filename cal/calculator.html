@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁計算機</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+
+        .calculator {
+            background-color: #222;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 320px;
+        }
+
+        .display {
+            background-color: #333;
+            color: #fff;
+            font-size: 2.5rem;
+            text-align: right;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+            min-height: 80px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            padding: 20px;
+            font-size: 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #444;
+            color: #fff;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .operator {
+            background-color: #ff9500;
+            color: white;
+        }
+
+        .operator:hover {
+            background-color: #e08300;
+        }
+
+        .clear {
+            background-color: #a5a5a5;
+            color: black;
+            grid-column: span 2;
+        }
+
+        .clear:hover {
+            background-color: #8c8c8c;
+        }
+
+        .equals {
+            background-color: #34c759;
+            grid-column: span 2;
+        }
+
+        .equals:hover {
+            background-color: #2da94c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons">
+            <button class="clear" onclick="clearDisplay()">C</button>
+            <button class="operator" onclick="appendOperator('/')">÷</button>
+            <button class="operator" onclick="appendOperator('*')">×</button>
+            
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button class="operator" onclick="appendOperator('-')">-</button>
+            
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button class="operator" onclick="appendOperator('+')">+</button>
+            
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button class="equals" onclick="calculate()">=</button>
+            
+            <button onclick="appendNumber('0')" style="grid-column: span 2;">0</button>
+            <button onclick="appendNumber('.')">.</button>
+        </div>
+    </div>
+
+    <script>
+        let currentInput = '';
+        const display = document.getElementById('display');
+
+        // 新增數字
+        function appendNumber(number) {
+            // 防止輸入多個小數點
+            if (number === '.' && currentInput.includes('.')) return;
+            currentInput += number;
+            updateDisplay(currentInput);
+        }
+
+        // 新增運算符
+        function appendOperator(operator) {
+            if (currentInput === '') return;
+            
+            // 如果最後一個字元已經是運算符，則替換它
+            const lastChar = currentInput.slice(-1);
+            if (['+', '-', '*', '/'].includes(lastChar)) {
+                currentInput = currentInput.slice(0, -1) + operator;
+            } else {
+                currentInput += operator;
+            }
+            // 畫面上顯示為易讀的符號
+            updateDisplay(currentInput.replace(/\*/g, '×').replace(/\//g, '÷'));
+        }
+
+        // 清除畫面
+        function clearDisplay() {
+            currentInput = '';
+            updateDisplay('0');
+        }
+
+        // 執行計算
+        function calculate() {
+            if (currentInput === '') return;
+            
+            try {
+                // 使用 eval 計算字串，並處理小數點精度問題
+                let result = eval(currentInput);
+                // 限制小數點位數，避免浮點數誤差 (例如 0.1 + 0.2)
+                result = Math.round(result * 100000000) / 100000000; 
+                currentInput = result.toString();
+                updateDisplay(currentInput);
+            } catch (error) {
+                updateDisplay('錯誤');
+                currentInput = '';
+            }
+        }
+
+        // 更新顯示畫面
+        function updateDisplay(value) {
+            display.innerText = value;
+        }
+    </script>
+
+</body>
+</html>
