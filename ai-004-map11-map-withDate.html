@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全螢幕雲端地圖軌跡工具 (含時間戳記)</title>
+    <title>全螢幕雲端地圖軌跡工具 (含時間戳記存檔與復原)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         html, body { padding: 0; margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
@@ -139,7 +139,7 @@
         //2027-0627於GoogleCloud網站申請
         const CLIENT_ID = '27889885944-73loidqbuu79h114sbrph9uacoh0gf9b.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyDRqTasSci6doMpi6lLSHrJ_R7oNhp9kyo';
-   
+     
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         const FILE_NAME = 'map_routes_data.json';
@@ -210,6 +210,9 @@
             }
         }
 
+        /* ========================================================
+           💾 儲存邏輯升級：同時將 lat, lng, date, time 存入 JSON
+           ======================================================== */
         async function saveRouteToDrive() {
             if (!gapi.client.getToken()) { alert('請先登入 Google！'); return; }
             if (pointsArray.length === 0) { alert('地圖上沒有節點可儲存！'); return; }
@@ -218,7 +221,14 @@
             if (!routeName) return;
             routeName = routeName.trim();
 
-            cloudRoutesData[routeName] = pointsArray.map(p => ({ lat: p.lat, lng: p.lng }));
+            // 儲存每個點位的經緯度與時間戳記
+            cloudRoutesData[routeName] = pointsArray.map(p => ({
+                lat: p.lat,
+                lng: p.lng,
+                date: p.date,
+                time: p.time
+            }));
+
             const jsonString = JSON.stringify(cloudRoutesData);
             const fileContent = new Blob([jsonString], {type: 'application/json'});
             const metadata = { name: FILE_NAME, mimeType: 'application/json' };
@@ -267,6 +277,9 @@
             });
         }
 
+        /* ========================================================
+           📂 載入邏輯升級：復原歷史記錄的日期與時間
+           ======================================================== */
         function loadRouteFromSelect() {
             const name = document.getElementById('routeSelect').value;
             if (!name) return;
@@ -274,9 +287,12 @@
             
             clearMap(false);
             const route = cloudRoutesData[name];
-            if (route) {
-                route.forEach(c => addPointToMap(L.latLng(c.lat, c.lng)));
-                map.fitBounds(L.latLngBounds(pointsArray), { padding: [50, 50] }); 
+            if (route && Array.isArray(route)) {
+                // 將儲存的 date 與 time 帶回 addPointToMap
+                route.forEach(c => addPointToMap(L.latLng(c.lat, c.lng), c.date, c.time));
+                if (pointsArray.length > 0) {
+                    map.fitBounds(L.latLngBounds(pointsArray), { padding: [50, 50] }); 
+                }
             }
         }
 
@@ -300,21 +316,30 @@
         });
 
         /* ========================================================
-           📍 修改重點：addPointToMap() 加上日期 (YYYY-MM-DD) 與時間 (HH:mm)
+           📍 addPointToMap 支援傳入 savedDate 與 savedTime
            ======================================================== */
-        function addPointToMap(latlng) {
+        function addPointToMap(latlng, savedDate = null, savedTime = null) {
+            let dateStr = savedDate;
+            let timeStr = savedTime;
+
+            // 若沒有傳入歷史時間（例如手動新增時），自動抓取系統當前時間
+            if (!dateStr || !timeStr) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+
+                dateStr = dateStr || `${year}-${month}-${day}`;
+                timeStr = timeStr || `${hours}:${minutes}`;
+            }
+
+            // 將日期時間屬性附加至 latlng 物件上，方便存檔時抓取
+            latlng.date = dateStr;
+            latlng.time = timeStr;
+
             let mk = L.marker(latlng, { icon: pointsArray.length === 0 ? redIcon : blueIcon }).addTo(markerGroup);
-
-            // 取得當前 Date 物件並格式化
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-
-            const dateStr = `${year}-${month}-${day}`;
-            const timeStr = `${hours}:${minutes}`;
 
             let popupContent = "";
 
@@ -330,7 +355,13 @@
                 popupContent = `<b>📍 節點 #${pointsArray.length + 1}</b><br>📏 距離前站: ${dist} 公尺<br>📅 日期：${dateStr}<br>⏰ 時間：${timeStr}`;
             }
 
-            mk.bindPopup(popupContent).openPopup();
+            mk.bindPopup(popupContent);
+            
+            // 手動點擊新增時自動開啟視窗；如果是載入歷史資料則不預先打開 popup
+            if (!savedDate) {
+                mk.openPopup();
+            }
+
             pointsArray.push(latlng);
         }
 
