@@ -109,7 +109,7 @@
             </div>
 
             <!-- 本機快取讀取按鈕 -->
-            <button class="btn-load-local" onclick="loadRouteFromLocalStorage()">📂 讀取本機 (LocalStorage) 路線</button>
+            <button class="btn-load-local" onclick="loadRouteFromLocalStorage(true)">📂 讀取本機 (LocalStorage) 路線</button>
 
             <button class="btn-save" onclick="saveRouteToDrive()">💾 同步目前路線至雲端</button>
 
@@ -145,10 +145,10 @@
         /* Google Cloud API 金鑰設定區 */
         //const CLIENT_ID = '請填入您的_CLIENT_ID.apps.googleusercontent.com';
         //const API_KEY = '請填入您的_API_KEY';
-            //2027-0627於GoogleCloud網站申請
+               //2027-0627於GoogleCloud網站申請
         const CLIENT_ID = '27889885944-73loidqbuu79h114sbrph9uacoh0gf9b.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyDRqTasSci6doMpi6lLSHrJ_R7oNhp9kyo';
-         
+      
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         const FILE_NAME = 'map_routes_data.json';
@@ -307,27 +307,56 @@
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
         }
 
-        function loadRouteFromLocalStorage() {
+        function loadRouteFromLocalStorage(isManualCall = false) {
             const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (!rawData) {
-                alert('本機 (localStorage) 目前沒有儲存的路線草稿喔！');
-                return;
+                if (isManualCall) alert('本機 (localStorage) 目前沒有儲存的路線草稿喔！');
+                return false;
             }
             
-            const route = JSON.parse(rawData);
-            if (!Array.isArray(route) || route.length === 0) {
-                alert('本機 (localStorage) 中的路線資料是空的！');
-                return;
-            }
+            try {
+                const route = JSON.parse(rawData);
+                if (!Array.isArray(route) || route.length === 0) {
+                    if (isManualCall) alert('本機 (localStorage) 中的路線資料是空的！');
+                    return false;
+                }
 
-            if (pointsArray.length > 0 && !confirm('讀取本機路線會覆蓋當前畫面的軌跡，確定嗎？')) return;
+                if (isManualCall && pointsArray.length > 0 && !confirm('讀取本機路線會覆蓋當前畫面的軌跡，確定嗎？')) {
+                    return false;
+                }
 
-            clearMap(false);
-            route.forEach(c => addPointToMap(L.latLng(c.lat, c.lng), c.date, c.time));
-            if (pointsArray.length > 0) {
-                map.fitBounds(L.latLngBounds(pointsArray), { padding: [50, 50] }); 
+                clearMap(false);
+                route.forEach(c => addPointToMap(L.latLng(c.lat, c.lng), c.date, c.time));
+                if (pointsArray.length > 0) {
+                    map.fitBounds(L.latLngBounds(pointsArray), { padding: [50, 50] }); 
+                }
+                if (isManualCall) alert('✅ 已成功載入本機 (localStorage) 路線！');
+                return true;
+            } catch (e) {
+                console.error("讀取本機紀錄失敗：", e);
+                return false;
             }
-            alert('✅ 已成功載入本機 (localStorage) 路線！');
+        }
+
+        /* 📍【新功能】載入網頁時檢查是否有草稿並彈出詢問視窗 */
+        function checkAndPromptOnStartup() {
+            const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (!rawData) return;
+
+            try {
+                const route = JSON.parse(rawData);
+                if (Array.isArray(route) && route.length > 0) {
+                    // 彈出確認詢問視窗
+                    const restore = confirm(`📍 檢測到您上次有未儲存的路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄上次路線並清除草稿`);
+                    if (restore) {
+                        loadRouteFromLocalStorage(false);
+                    } else {
+                        localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    }
+                }
+            } catch (e) {
+                console.error("解析本機草稿失敗：", e);
+            }
         }
 
         // --- 地圖與 GPS 定位核心 ---
@@ -415,14 +444,12 @@
             syncToLocalStorage();
         }
 
-        /* ❌ 修改重點：加入確認與放棄防呆對話框 */
         function clearMap(isManual) {
             if (isManual && pointsArray.length === 0) {
                 alert('畫面目前已經是空的囉！');
                 return;
             }
 
-            // 手動觸發時顯示確認視窗；非手動觸發（如讀取舊路線時）直接清除
             if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
                 markerGroup.clearLayers(); 
                 lineGroup.clearLayers();
@@ -433,7 +460,11 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => locateUser(false));
+        /* 網頁開啟時：先定位，接著檢測並詢問是否還原上次草稿 */
+        document.addEventListener('DOMContentLoaded', () => {
+            locateUser(false);
+            checkAndPromptOnStartup();
+        });
     </script>
 </body>
 </html>
