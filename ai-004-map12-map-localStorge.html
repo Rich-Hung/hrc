@@ -70,7 +70,7 @@
         .btn-add-current { background-color: #e67e22; }
         .btn-save { background-color: #2ecc71; }
         .btn-load { background-color: #4a90e2; }
-        .btn-load-local { background-color: #8e44ad; } /* 本機讀取按鈕用紫色區隔 */
+        .btn-load-local { background-color: #8e44ad; }
         .btn-clear { background-color: #ff5e5e; margin-top: 5px; }
         .distance-label { background: white; border: 1px solid #666; border-radius: 4px; padding: 2px 6px; font-size: 12px; font-weight: bold; }
         select { width: 100%; padding: 10px; font-size: 14px; border-radius: 8px; border: 2px solid #e0e0e0; box-sizing: border-box; }
@@ -145,10 +145,10 @@
         /* Google Cloud API 金鑰設定區 */
         //const CLIENT_ID = '請填入您的_CLIENT_ID.apps.googleusercontent.com';
         //const API_KEY = '請填入您的_API_KEY';
-        //2027-0627於GoogleCloud網站申請
+            //2027-0627於GoogleCloud網站申請
         const CLIENT_ID = '27889885944-73loidqbuu79h114sbrph9uacoh0gf9b.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyDRqTasSci6doMpi6lLSHrJ_R7oNhp9kyo';
-    
+         
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         const FILE_NAME = 'map_routes_data.json';
@@ -297,9 +297,6 @@
             }
         }
 
-        /* ========================================================
-           💾 LocalStorage 自動同步與讀取核心函數
-           ======================================================== */
         function syncToLocalStorage() {
             const dataToSave = pointsArray.map(p => ({
                 lat: p.lat,
@@ -394,7 +391,7 @@
             }
 
             pointsArray.push(latlng);
-            syncToLocalStorage(); // 每新增點位自動同步寫入 localStorage
+            syncToLocalStorage();
         }
 
         function locateUser(showAlerts) {
@@ -411,7 +408,6 @@
             );
         }
 
-        /* 📍 納入當前位置（自動儲存至 localStorage） */
         function addCurrentLocationToRoute() {
             if (!lastUserLatLng) { alert("請先點擊刷新位置！"); return; }
             addPointToMap(lastUserLatLng);
@@ -419,13 +415,22 @@
             syncToLocalStorage();
         }
 
-        /* ❌ 清除畫面（同時同步清空 localStorage） */
+        /* ❌ 修改重點：加入確認與放棄防呆對話框 */
         function clearMap(isManual) {
-            if (isManual && pointsArray.length === 0) return;
-            markerGroup.clearLayers(); lineGroup.clearLayers();
-            pointsArray = []; totalDistance = 0;
-            document.getElementById('totalDistance').value = "0 公尺"; 
-            localStorage.removeItem(LOCAL_STORAGE_KEY); // 清空本機暫存資料
+            if (isManual && pointsArray.length === 0) {
+                alert('畫面目前已經是空的囉！');
+                return;
+            }
+
+            // 手動觸發時顯示確認視窗；非手動觸發（如讀取舊路線時）直接清除
+            if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
+                markerGroup.clearLayers(); 
+                lineGroup.clearLayers();
+                pointsArray = []; 
+                totalDistance = 0;
+                document.getElementById('totalDistance').value = "0 公尺"; 
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => locateUser(false));
