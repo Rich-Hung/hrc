@@ -442,6 +442,7 @@
 
             if (pointsArray.length === 0) {
                 popupContent = `<b>📍 起點</b><br>📅 日期：${dateStr}<br>⏰ 時間：${timeStr}`;
+                document.getElementById('mapPointCount').value = 1;//2026-1003加上此列。
             } else {
                 const last = pointsArray[pointsArray.length - 1];
                 const dist = Math.round(last.distanceTo(latlng));
