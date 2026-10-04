@@ -386,11 +386,15 @@
                 const route = JSON.parse(rawData);
                 if (Array.isArray(route) && route.length > 0) {
                     // 彈出確認詢問視窗
-                    const restore = confirm(`📍 檢測到您上次有未儲存的路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄上次路線並清除草稿`);
+                    //const restore = confirm(`📍 檢測到您上次有未儲存的路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄上次路線並清除草稿`);
+                    const restore = confirm(`📍 檢測到您上次有未儲存的路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄載入上次路線只保留草稿`);
                     if (restore) {
                         loadRouteFromLocalStorage(false);
                     } else {
-                        localStorage.removeItem(LOCAL_STORAGE_KEY);
+                        //localStorage.removeItem(LOCAL_STORAGE_KEY);//2026-1004註解此列。
+                        document.getElementById('storagePointCount').value = route.length ;//2026-1003加上此列。
+
+
                     }
                 }
             } catch (e) {
@@ -491,15 +495,16 @@
                 return;
             }
 
-            if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
+            //if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
+            if (!isManual || confirm('確定要清除地圖上所有線條與圖釘嗎？\n（本動作只清空地圖，而會保留本機Storage）')) {
                 markerGroup.clearLayers(); 
                 lineGroup.clearLayers();
                 pointsArray = []; 
                 totalDistance = 0;
                 document.getElementById('totalDistance').value = "0 公尺"; 
-                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                //localStorage.removeItem(LOCAL_STORAGE_KEY);//2026-1004註解此列。
                 document.getElementById('mapPointCount').value = 0;//2026-1003加上此列。
-                document.getElementById('storagePointCount').value = 0;//2026-1003加上此列。
+                //document.getElementById('storagePointCount').value = 0;//2026-1003加上此列。
 
             }
         }
