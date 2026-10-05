@@ -462,7 +462,8 @@
             if (isChecked) {
                 // 勾選時立即觸發一次，並開始每 30 秒定時輪詢
                 autoAddCurrentLocationNode();
-                autoAddTimer = setInterval(autoAddCurrentLocationNode, 30000);
+                //autoAddTimer = setInterval(autoAddCurrentLocationNode, 30000);
+                autoAddTimer = setInterval(autoAddCurrentLocationNode, 15000);
             } else {
                 if (autoAddTimer) {
                     clearInterval(autoAddTimer);
