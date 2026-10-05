@@ -101,10 +101,10 @@
                     <input type="checkbox" id="enableMapClick"> 勾選才允許點擊插旗
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd_15()"> ⏱️ 每 15 秒自動新增節點
+                    <input type="checkbox" id="autoAddCheckbox_15" onchange="toggleAutoAdd_15()"> ⏱️ 每 15 秒自動新增節點
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd_60()"> ⏱️ 每 60 秒自動新增節點
+                    <input type="checkbox" id="autoAddCheckbox_60" onchange="toggleAutoAdd_60()"> ⏱️ 每 60 秒自動新增節點
                 </label>
             </div>
 
@@ -501,7 +501,7 @@
 
         /* ⏱️ 每 30 秒自動更新定位並納入節點 */
         function toggleAutoAdd_15() {
-            const isChecked = document.getElementById('autoAddCheckbox').checked;
+            const isChecked = document.getElementById('autoAddCheckbox_15').checked;
             if (isChecked) {
                 // 勾選時立即觸發一次，並開始每 30 秒定時輪詢
                 autoAddCurrentLocationNode();
@@ -517,7 +517,7 @@
 
         /* ⏱️ 每 30 秒自動更新定位並納入節點 */
         function toggleAutoAdd_60() {
-            const isChecked = document.getElementById('autoAddCheckbox').checked;
+            const isChecked = document.getElementById('autoAddCheckbox_60').checked;
             if (isChecked) {
                 // 勾選時立即觸發一次，並開始每 30 秒定時輪詢
                 autoAddCurrentLocationNode();
