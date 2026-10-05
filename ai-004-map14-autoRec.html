@@ -62,15 +62,15 @@
         .panel-title { font-size: 14px; font-weight: bold; color: #333; margin: 0; }
         .total-input-group label { font-size: 12px; color: #666; font-weight: bold; }
         .total-input { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; text-align: right; box-sizing: border-box; }
+        .total-input2 {  padding: 10px; font-size: 18px; font-weight: bold; background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; text-align: right; box-sizing: border-box; }
         .btn-group-row { display: flex; gap: 8px; }
-        button { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: transform 0.1s; color: white;}
+        button { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: transform 0.1s; color: white;}
         button:active { transform: scale(0.98); }
         .btn-auth { background-color: #4285F4; }
         .btn-locate { background-color: #34495e; }
         .btn-add-current { background-color: #e67e22; }
         .btn-save { background-color: #2ecc71; }
         .btn-load { background-color: #4a90e2; }
-        .btn-save-local { background-color: #27ae60; }
         .btn-load-local { background-color: #8e44ad; }
         .btn-clear { background-color: #ff5e5e; margin-top: 5px; }
         .distance-label { background: white; border: 1px solid #666; border-radius: 4px; padding: 2px 6px; font-size: 12px; font-weight: bold; }
@@ -90,8 +90,8 @@
 
         <!-- 主控制面板 -->
         <div id="mainControlPanel" class="control-panel">
-            <p class="panel-title">☁️ 雲端與本機軌跡工具</p>
-            
+            <p class="panel-title">☁️ 雲端與本機軌跡工具
+            <a target="_blank" rel="noopener noreferrer" href="map13.txt">map13.txt</a></p>
             <button id="authorize_button" class="btn-auth" onclick="handleAuthClick()">登入 Google 雲端讀取資料</button>
             <button id="signout_button" class="btn-clear" onclick="handleSignoutClick()" style="display: none;">登出 Google</button>
 
@@ -105,20 +105,26 @@
                 </label>
             </div>
 
+
             <div class="btn-group-row">
                 <button class="btn-locate" onclick="locateUser(true)">🎯 刷新位置</button>
                 <button class="btn-add-current" onclick="addCurrentLocationToRoute()">➕ 納入當前</button>
             </div>
             
             <div class="total-input-group">
-                <label>總合計距離：</label>
+                <label id="label_01">[地圖節點數][Storage節點數][總合計距離]：</label>
+            </div>
+            <div class="btn-group-row">
+                <input type="text" id="mapPointCount" class="total-input" value="0" readonly>
+                <input type="text" id="storagePointCount" class="total-input" value="0" readonly>
                 <input type="text" id="totalDistance" class="total-input" value="0 公尺" readonly>
             </div>
 
-            <!-- 本機 LocalStorage 同列按鈕組 -->
+            <!-- 本機快取讀取按鈕 -->
             <div class="btn-group-row">
-                <button class="btn-save-local" onclick="manualSaveToLocalStorage()">💾 儲存至本機</button>
-                <button class="btn-load-local" onclick="loadRouteFromLocalStorage(true)">📂 讀取本機</button>
+                <button class="btn-load-local" onclick="test()">test</button>
+                <button class="btn-load-local" onclick="syncToLocalStorage_alert()">💾 存至Storage</button>
+                <button class="btn-load-local" onclick="loadRouteFromLocalStorage(true)">📂 讀取Storage</button>
             </div>
 
             <button class="btn-save" onclick="saveRouteToDrive()">💾 同步目前路線至雲端</button>
@@ -140,8 +146,20 @@
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
     <script>
+        function test() {
+            console.info("ggggg");
+            document.getElementById('totalDistance').value = "0000 公尺"; 
+            //document.getElementById('label_01').textContent = "0000 公尺"; 
+            document.getElementById('label_01').textContent = pointsArray; //可以看到座標，但無日期、時刻
+
+        }
+
+
+
+
+
+
         const LOCAL_STORAGE_KEY = 'draft_map_route_backup';
-        let autoAddTimer = null; // 自動新增節點的計時器控制
 
         function togglePanelVisibility() {
             const isChecked = document.getElementById('togglePanelCheckbox').checked;
@@ -154,9 +172,12 @@
         }
 
         /* Google Cloud API 金鑰設定區 */
-        const CLIENT_ID = '請填入您的_CLIENT_ID.apps.googleusercontent.com';
-        const API_KEY = '請填入您的_API_KEY';
-        
+        //const CLIENT_ID = '請填入您的_CLIENT_ID.apps.googleusercontent.com';
+        //const API_KEY = '請填入您的_API_KEY';
+               //2027-0627於GoogleCloud網站申請
+        const CLIENT_ID = '27889885944-73loidqbuu79h114sbrph9uacoh0gf9b.apps.googleusercontent.com';
+        const API_KEY = 'AIzaSyDRqTasSci6doMpi6lLSHrJ_R7oNhp9kyo';
+      
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         const FILE_NAME = 'map_routes_data.json';
@@ -305,12 +326,7 @@
             }
         }
 
-        /* 手動儲存至 LocalStorage */
-        function manualSaveToLocalStorage() {
-            if (pointsArray.length === 0) {
-                alert('地圖上目前沒有任何節點可以儲存喔！');
-                return;
-            }
+        function syncToLocalStorage() {
             const dataToSave = pointsArray.map(p => ({
                 lat: p.lat,
                 lng: p.lng,
@@ -318,7 +334,20 @@
                 time: p.time
             }));
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
-            alert('✅ 已成功將當前路線儲存至本機 (LocalStorage)！');
+            document.getElementById('storagePointCount').value = pointsArray.length;//2026-1003加上此列。
+        }
+        function syncToLocalStorage_alert() {
+            const dataToSave = pointsArray.map(p => ({
+                lat: p.lat,
+                lng: p.lng,
+                date: p.date,
+                time: p.time
+            }));
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+            document.getElementById('storagePointCount').value = pointsArray.length;//2026-1003加上此列。
+
+            alert('✅ 已成功將路線存入本機 (localStorage) ！');
+
         }
 
         function loadRouteFromLocalStorage(isManualCall = false) {
@@ -344,7 +373,10 @@
                 if (pointsArray.length > 0) {
                     map.fitBounds(L.latLngBounds(pointsArray), { padding: [50, 50] }); 
                 }
-                if (isManualCall) alert('✅ 已成功載入本機 (localStorage) 路線！');
+                if (isManualCall) {
+                    alert('✅ 已成功載入本機 (localStorage) 路線！');
+                }
+                syncToLocalStorage();//2026-1003加上此列，才能正常保有localStorage之資料。
                 return true;
             } catch (e) {
                 console.error("讀取本機紀錄失敗：", e);
@@ -352,7 +384,7 @@
             }
         }
 
-        /* 📍 載入網頁時檢查是否有草稿並彈出詢問視窗 */
+        /* 📍【新功能】載入網頁時檢查是否有草稿並彈出詢問視窗 */
         function checkAndPromptOnStartup() {
             const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (!rawData) return;
@@ -360,11 +392,16 @@
             try {
                 const route = JSON.parse(rawData);
                 if (Array.isArray(route) && route.length > 0) {
-                    const restore = confirm(`📍 檢測到您上次有儲存的本機路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄上次路線並清除本機草稿`);
+                    // 彈出確認詢問視窗
+                    //const restore = confirm(`📍 檢測到您上次有未儲存的路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄上次路線並清除草稿`);
+                    const restore = confirm(`📍 檢測到您上次有未儲存的路線草稿（包含 ${route.length} 個節點）。\n\n【確定】：恢復上次路線\n【取消】：放棄載入上次路線只保留草稿`);
                     if (restore) {
                         loadRouteFromLocalStorage(false);
                     } else {
-                        localStorage.removeItem(LOCAL_STORAGE_KEY);
+                        //localStorage.removeItem(LOCAL_STORAGE_KEY);//2026-1004註解此列。
+                        document.getElementById('storagePointCount').value = route.length ;//2026-1003加上此列。
+
+
                     }
                 }
             } catch (e) {
@@ -416,10 +453,12 @@
 
             if (pointsArray.length === 0) {
                 popupContent = `<b>📍 起點</b><br>📅 日期：${dateStr}<br>⏰ 時間：${timeStr}`;
+                document.getElementById('mapPointCount').value = 1;//2026-1003加上此列。
             } else {
                 const last = pointsArray[pointsArray.length - 1];
                 const dist = Math.round(last.distanceTo(latlng));
                 totalDistance += dist;
+                document.getElementById('mapPointCount').value = pointsArray.length+1;//2026-1003加上此列。
                 document.getElementById('totalDistance').value = totalDistance.toLocaleString() + " 公尺";
                 L.polyline([last, latlng], { color: '#4a90e2', weight: 4 }).addTo(lineGroup);
                 
@@ -433,7 +472,7 @@
             }
 
             pointsArray.push(latlng);
-            // 已依需求取消 addPointToMap 時的自動背景儲存 (syncToLocalStorage)
+            //syncToLocalStorage();
         }
 
         function locateUser(showAlerts) {
@@ -454,6 +493,7 @@
             if (!lastUserLatLng) { alert("請先點擊刷新位置！"); return; }
             addPointToMap(lastUserLatLng);
             map.setView(lastUserLatLng, 16);
+            //syncToLocalStorage();
         }
 
         /* ⏱️ 每 30 秒自動更新定位並納入節點 */
@@ -486,23 +526,28 @@
             );
         }
 
+
         function clearMap(isManual) {
             if (isManual && pointsArray.length === 0) {
                 alert('畫面目前已經是空的囉！');
                 return;
             }
 
-            if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
+            //if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
+            if (!isManual || confirm('確定要清除地圖上所有線條與圖釘嗎？\n（本動作只清空地圖，而會保留本機Storage）')) {
                 // 停止自動定時追蹤
                 document.getElementById('autoAddCheckbox').checked = false;
                 toggleAutoAdd();
-
+                
                 markerGroup.clearLayers(); 
                 lineGroup.clearLayers();
                 pointsArray = []; 
                 totalDistance = 0;
                 document.getElementById('totalDistance').value = "0 公尺"; 
-                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                //localStorage.removeItem(LOCAL_STORAGE_KEY);//2026-1004註解此列。
+                document.getElementById('mapPointCount').value = 0;//2026-1003加上此列。
+                //document.getElementById('storagePointCount').value = 0;//2026-1003加上此列。
+
             }
         }
 
