@@ -101,10 +101,7 @@
                     <input type="checkbox" id="enableMapClick"> 勾選才允許點擊插旗
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="autoAddCheckbox_15" onchange="toggleAutoAdd_15()"> ⏱️ 每 15 秒自動新增節點
-                </label>
-                <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="autoAddCheckbox_60" onchange="toggleAutoAdd_60()"> ⏱️ 每 60 秒自動新增節點
+                    <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd()"> ⏱️ 每 60 秒自動新增節點
                 </label>
             </div>
 
@@ -498,31 +495,14 @@
             map.setView(lastUserLatLng, 16);
             //syncToLocalStorage();
         }
-
-        /* ⏱️ 每 30 秒自動更新定位並納入節點 */
-        function toggleAutoAdd_15() {
-            const isChecked = document.getElementById('autoAddCheckbox_15').checked;
+        /* ⏱️ 每 60 秒自動更新定位並納入節點 */
+        function toggleAutoAdd() {
+            const isChecked = document.getElementById('autoAddCheckbox').checked;
             if (isChecked) {
-                // 勾選時立即觸發一次，並開始每 30 秒定時輪詢
+                // 勾選時立即觸發一次，並開始每 60 秒定時輪詢
                 autoAddCurrentLocationNode();
                 //autoAddTimer = setInterval(autoAddCurrentLocationNode, 30000);
-                autoAddTimer = setInterval(autoAddCurrentLocationNode, 15000);
-            } else {
-                if (autoAddTimer) {
-                    clearInterval(autoAddTimer);
-                    autoAddTimer = null;
-                }
-            }
-        }
-
-        /* ⏱️ 每 30 秒自動更新定位並納入節點 */
-        function toggleAutoAdd_60() {
-            const isChecked = document.getElementById('autoAddCheckbox_60').checked;
-            if (isChecked) {
-                // 勾選時立即觸發一次，並開始每 30 秒定時輪詢
-                autoAddCurrentLocationNode();
-                //autoAddTimer = setInterval(autoAddCurrentLocationNode, 30000);
-                autoAddTimer = setInterval(autoAddCurrentLocationNode, 60000);
+                autoAddTimer = setInterval(autoAddCurrentLocationNode, 10000);
             } else {
                 if (autoAddTimer) {
                     clearInterval(autoAddTimer);
@@ -547,6 +527,8 @@
 
 
         function clearMap(isManual) {
+            //alert('at 執行 clearMap()01');
+
             if (isManual && pointsArray.length === 0) {
                 alert('畫面目前已經是空的囉！');
                 return;
@@ -554,10 +536,12 @@
 
             //if (!isManual || confirm('確定要清除當前所有線條與圖釘嗎？\n（此動作同時會清空本機草稿）')) {
             if (!isManual || confirm('確定要清除地圖上所有線條與圖釘嗎？\n（本動作只清空地圖，而會保留本機Storage）')) {
+            //alert('at 執行 clearMap()02');
                 // 停止自動定時追蹤
                 document.getElementById('autoAddCheckbox').checked = false;
-                toggleAutoAdd();
-                
+            //alert('at 執行 clearMap()03');
+                //toggleAutoAdd();
+            //alert('at 執行 clearMap()04');
                 markerGroup.clearLayers(); 
                 lineGroup.clearLayers();
                 pointsArray = []; 
@@ -566,6 +550,7 @@
                 //localStorage.removeItem(LOCAL_STORAGE_KEY);//2026-1004註解此列。
                 document.getElementById('mapPointCount').value = 0;//2026-1003加上此列。
                 //document.getElementById('storagePointCount').value = 0;//2026-1003加上此列。
+            //alert('at 執行 clearMap()05');
 
             }
         }
