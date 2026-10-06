@@ -12,13 +12,13 @@
         /* 右下角懸浮外框容器 */
         .panel-container {
             position: absolute;
-            bottom: 25px;
-            right: 20px;
+            bottom: 0px;
+            right: 0px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 8px;
+            gap: 0px;
             max-height: 90vh;
         }
 
@@ -34,7 +34,7 @@
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 0px;
             user-select: none;
             border: 1px solid #dcdde1;
             transition: background 0.2s;
@@ -49,12 +49,12 @@
         */
         .control-panel {
             background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
+            padding: 0px;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 0px;
             width: 290px;
             box-sizing: border-box;
             /*max-height: 80vh; */
@@ -99,10 +99,10 @@
             -->
             <div style="display: flex; flex-direction: row; gap: 6px;">
                 <label style="font-size: 13px; font-weight: bold; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="enableMapClick"> 勾選才允許點擊插旗
+                    <input type="checkbox" id="enableMapClick"> 允許點擊插旗
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd()"> ⏱️ 每 60 秒自動新增節點
+                    <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd()">⏱️每60秒新增一點
                 </label>
             </div>
 
