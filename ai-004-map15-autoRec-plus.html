@@ -102,6 +102,9 @@
                     <input type="checkbox" id="enableMapClick"> 允許點擊插旗
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="autoAddCheckbox_10s" onchange="toggleAutoAdd()">10
+                </label>
+                <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
                     <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd()">⏱️每60秒新增一點
                 </label>
             </div>
@@ -527,13 +530,32 @@
             //syncToLocalStorage();
         }
         /* ⏱️ 每 60 秒自動更新定位並納入節點 */
-        function toggleAutoAdd() {
+        function toggleAutoAdd_old() {
             const isChecked = document.getElementById('autoAddCheckbox').checked;
             if (isChecked) {
                 // 勾選時立即觸發一次，並開始每 60 秒定時輪詢
                 autoAddCurrentLocationNode();
                 //autoAddTimer = setInterval(autoAddCurrentLocationNode, 30000);
                 autoAddTimer = setInterval(autoAddCurrentLocationNode, 60000);
+            } else {
+                if (autoAddTimer) {
+                    clearInterval(autoAddTimer);
+                    autoAddTimer = null;
+                }
+            }
+        }
+        function toggleAutoAdd() {
+            const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
+            const isChecked = document.getElementById('autoAddCheckbox').checked;
+            if (isChecked) {
+                // 勾選時立即觸發一次，並開始每 60 秒定時輪詢
+                autoAddCurrentLocationNode();
+                //autoAddTimer = setInterval(autoAddCurrentLocationNode, 30000);
+                if(isChecked_10s){
+                    autoAddTimer = setInterval(autoAddCurrentLocationNode, 10000);
+                }else{
+                    autoAddTimer = setInterval(autoAddCurrentLocationNode, 60000);
+                }
             } else {
                 if (autoAddTimer) {
                     clearInterval(autoAddTimer);
