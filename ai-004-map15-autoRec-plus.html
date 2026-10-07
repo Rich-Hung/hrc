@@ -135,7 +135,8 @@
 
             <button class="btn-clear" onclick="clearMap(true)">❌ 清除當前線條圖釘</button>
         </div>
-        <div id="mainControlPanel_2" class="control-panel">
+        <!-- 雲端控制面板 -->
+        <div id="mainControlPanel_2" class="control-panel  hidden">
             <p class="panel-title">☁️ 雲端與本機軌跡工具
             <a target="_blank" rel="noopener noreferrer" href="map13.txt">2026-1006</a></p>
             <button id="authorize_button" class="btn-auth" onclick="handleAuthClick()">登入 Google 雲端讀取資料</button>
@@ -160,7 +161,7 @@
                 <span>👁️ 顯示控制台</span>
             </label>
             <label class="toggle-panel-label">
-                <input type="checkbox" id="togglePanelCheckbox_2" checked onchange="togglePanelVisibility_2()">
+                <input type="checkbox" id="togglePanelCheckbox_2"  onchange="togglePanelVisibility_2()">
                 <span>👁️ 雲端控制</span>
             </label>
         </div>
