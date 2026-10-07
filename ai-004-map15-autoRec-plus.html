@@ -116,7 +116,7 @@
             </div>
             
             <div class="total-input-group">
-                <label id="label_01">[地圖節點數][Storage節點數][總合計距離]：</label>
+                <label id="label_01">[倒數][地圖節點數][Storage節點數][總合計距離]：</label>
             </div>
             <div class="btn-group-row">
                 <input type="text" id="input_countDown" class="total-input4" value="0" readonly>
@@ -545,11 +545,12 @@
                 }
             }
         }
-        const intCountDown = 60;
+        //const intCountDown = 60;//注意 變數不可宣告，否則無效。
         function toggleAutoAdd() {
             const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
             const isChecked = document.getElementById('autoAddCheckbox').checked;
             //1.啟動繪圖
+
             if (isChecked) {
                 // 勾選時立即觸發一次，並開始每 60 秒定時輪詢
                 autoAddCurrentLocationNode();
@@ -565,6 +566,7 @@
                     autoAddTimer = null;
                 }
             }
+
             //2.啟動倒數秒數
             if (isChecked) {
                 if(isChecked_10s){
@@ -572,7 +574,8 @@
                 }else{
                     intCountDown = 60;
                 }
-                autoAddTimer_cd = setInterval(countDown, 1000);
+                fcountDown();
+                autoAddTimer_cd = setInterval(fcountDown, 1000);
             } else {
                 if (autoAddTimer_cd) {
                     clearInterval(autoAddTimer_cd);
@@ -593,6 +596,12 @@
                 err => { console.warn("自動紀錄定位失敗：", err); },
                 { enableHighAccuracy: true, timeout: 6000 }
             );
+            const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
+            if(isChecked_10s){
+                intCountDown = 10;
+            }else{
+                intCountDown = 60;
+            }
         }
         //倒數秒數
         function showSecs() {
@@ -620,7 +629,7 @@
                 }
             }
         }
-        function countDown() {
+        function fcountDown() {
             intCountDown--;
             document.getElementById('input_countDown').value = intCountDown;//2026-1006加上此列。
             
