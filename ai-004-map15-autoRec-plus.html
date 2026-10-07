@@ -102,7 +102,7 @@
                     <input type="checkbox" id="enableMapClick"> 允許點擊插旗
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="autoAddCheckbox_10s" onchange="toggleAutoAdd()">10
+                    <input type="checkbox" id="autoAddCheckbox_10s" onchange="showSecs()">10
                 </label>
                 <label style="font-size: 13px; font-weight: bold; color: #d35400; display: flex; gap: 5px; align-items: center; cursor: pointer;">
                     <input type="checkbox" id="autoAddCheckbox" onchange="toggleAutoAdd()">⏱️每60秒新增一點
@@ -119,6 +119,7 @@
                 <label id="label_01">[地圖節點數][Storage節點數][總合計距離]：</label>
             </div>
             <div class="btn-group-row">
+                <input type="text" id="input_countDown" class="total-input4" value="0" readonly>
                 <input type="text" id="mapPointCount" class="total-input4" value="0" readonly>
                 <input type="text" id="storagePointCount" class="total-input4" value="0" readonly>
                 <input type="text" id="totalDistance" class="total-input5" value="0 公尺" readonly>
@@ -544,9 +545,11 @@
                 }
             }
         }
+        const intCountDown = 60;
         function toggleAutoAdd() {
             const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
             const isChecked = document.getElementById('autoAddCheckbox').checked;
+            //1.啟動繪圖
             if (isChecked) {
                 // 勾選時立即觸發一次，並開始每 60 秒定時輪詢
                 autoAddCurrentLocationNode();
@@ -560,6 +563,20 @@
                 if (autoAddTimer) {
                     clearInterval(autoAddTimer);
                     autoAddTimer = null;
+                }
+            }
+            //2.啟動倒數秒數
+            if (isChecked) {
+                if(isChecked_10s){
+                    intCountDown = 10;
+                }else{
+                    intCountDown = 60;
+                }
+                autoAddTimer_cd = setInterval(countDown, 1000);
+            } else {
+                if (autoAddTimer_cd) {
+                    clearInterval(autoAddTimer_cd);
+                    autoAddTimer_cd = null;
                 }
             }
         }
@@ -577,6 +594,49 @@
                 { enableHighAccuracy: true, timeout: 6000 }
             );
         }
+        //倒數秒數
+        function showSecs() {
+            const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
+            if(isChecked_10s){
+                document.getElementById('input_countDown').value = 10;//2026-1006加上此列。
+            }else{
+                document.getElementById('input_countDown').value = 60;//2026-1006加上此列。
+            }
+        }
+        function toggleCountDown() {
+            const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
+            const isChecked = document.getElementById('autoAddCheckbox').checked;
+            if (isChecked) {
+                if(isChecked_10s){
+                    intCountDown = 10;
+                }else{
+                    intCountDown = 60;
+                }
+                autoAddTimer_cd = setInterval(countDown, 1000);
+            } else {
+                if (autoAddTimer_cd) {
+                    clearInterval(autoAddTimer_cd);
+                    autoAddTimer_cd = null;
+                }
+            }
+        }
+        function countDown() {
+            intCountDown--;
+            document.getElementById('input_countDown').value = intCountDown;//2026-1006加上此列。
+            
+
+        }
+
+
+
+
+
+
+
+
+
+
+
 
 
         function clearMap(isManual) {
