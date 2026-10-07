@@ -607,44 +607,17 @@
         function showSecs() {
             const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
             if(isChecked_10s){
-                document.getElementById('input_countDown').value = 10;//2026-1006加上此列。
+                document.getElementById('input_countDown').value = 10+'秒';//2026-1006加上此列。
             }else{
-                document.getElementById('input_countDown').value = 60;//2026-1006加上此列。
-            }
-        }
-        function toggleCountDown() {
-            const isChecked_10s = document.getElementById('autoAddCheckbox_10s').checked;
-            const isChecked = document.getElementById('autoAddCheckbox').checked;
-            if (isChecked) {
-                if(isChecked_10s){
-                    intCountDown = 10;
-                }else{
-                    intCountDown = 60;
-                }
-                autoAddTimer_cd = setInterval(countDown, 1000);
-            } else {
-                if (autoAddTimer_cd) {
-                    clearInterval(autoAddTimer_cd);
-                    autoAddTimer_cd = null;
-                }
+                document.getElementById('input_countDown').value = 60+'秒';//2026-1006加上此列。
             }
         }
         function fcountDown() {
             intCountDown--;
-            document.getElementById('input_countDown').value = intCountDown;//2026-1006加上此列。
+            document.getElementById('input_countDown').value = intCountDown+'秒';//2026-1006加上此列。
             
 
         }
-
-
-
-
-
-
-
-
-
-
 
 
 
